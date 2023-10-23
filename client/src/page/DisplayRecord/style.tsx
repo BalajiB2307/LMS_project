@@ -1,52 +1,41 @@
-import { makeStyles } from '@ellucian/react-design-system/core';
+// import { makeStyles } from '@ellucian/react-design-system/core';
+import {
+  spacing50,
+  spacing60
+} from '@ellucian/react-design-system/core/styles/tokens';
 
-const useStyles = makeStyles((theme) => ({
-    pageContainer: {
-        height: '100%',
-        display: 'flex',
-        flexDirection: 'column'
-    },
-    actionContainer: {
-        display: 'flex',
-        justifyContent: 'space-between'
-    },
-    backButtonContainer: {
-        margin: '5px',
-        border: 'none !important',
-        '&:hover': {
-            backgroundColor: '#FFFFFF !important',
-            color: '#026BC8 !important'
-        }
-    },
-    newDrawerContainer: {
-        display: 'flex',
-        flexDirection: 'column'
-    },
-    newDrawerContainerRow: {
-        display: 'flex',
-        justifyContent: 'flex-start',
-        margin: '10px',
-        gap: '2rem'
-    },
-    dropdown: {
-        '& div[role="button"]': {
-            width: '12rem'
-        }
-    },
-    multilineContainer: {
-        margin: '0'
-    },
-    table: {
-        margin: theme.spacing(3)
-    },
-    addPropertyButtonContainer: {
-        margin: theme.spacing(5)
-    },
-    dataTypeDropdown: {
-        '& input[aria-hidden="true"]': {
-            visibility: 'hidden !important'
-        }
-    }
-}));
+ export const styles = {
+   illustrationStyle: {
+     display: 'flex',
+     flexDirection: 'row',
+     justifyContent: 'center'
+   },
+   inline: {
+     marginTop: spacing60
+   },
+   inlineAlert: {
+     marginBottom: spacing50
+   },
+   tableStyle: {
+     marginLeft: '0.3rem',
+     marginRight: '0.3rem'
+   },
+   addBookStyle: {
+     display: 'flex',
+     flexDirection: 'row',
+     justifyContent: 'space-between'
+   },
+   searchBookStyle: {
+     marginLeft: '25px',
+     marginBottom: '20px'
+   },
+   backButtonStyle: {
+     marginRight: '30px',
+     marginTop: '16px'
+   },
+   pageTitleStyle:{
+    marginLeft: '30px'
+   }
+ };
 
-export default useStyles;
+// export default useStyles;

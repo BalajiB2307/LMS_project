@@ -1,57 +1,30 @@
-import { makeStyles } from '@ellucian/react-design-system/core';
+// import { makeStyles } from '@ellucian/react-design-system/core';
 
-const useStyles = makeStyles((theme) => ({
-  CenteredForm: {
+export const styles = {
+  alertStyle: {
+    display: 'content',
+    flexDirection: 'column',
+    alignItems: ' center',
+    justifyContent: 'space-between',
+    textAlign: 'left'
+  },
+  formStyle: {
     display: 'flex',
     flexDirection: 'column',
     alignItems: 'center'
   },
-  pageContainer: {
-    height: '100%',
+  textFieldStyle: {
+    marginBottom: '0.3rem',
+    width: '350px'
+  },
+  allButtonsStyle:{
     display: 'flex',
-    flexDirection: 'column'
+    flexDirection: 'row',
+    marginRight: '0.3rem',
+    width: '350px',
+    justifyContent: 'center'
   },
-  actionContainer: {
-    display: 'flex',
-    justifyContent: 'space-between'
-  },
-  backButtonContainer: {
-    margin: '5px',
-    border: 'none !important',
-    '&:hover': {
-      backgroundColor: '#FFFFFF !important',
-      color: '#026BC8 !important'
-    }
-  },
-  newDrawerContainer: {
-    display: 'flex',
-    flexDirection: 'column'
-  },
-  newDrawerContainerRow: {
-    display: 'flex',
-    justifyContent: 'flex-start',
-    margin: '10px',
-    gap: '2rem'
-  },
-  dropdown: {
-    '& div[role="button"]': {
-      width: '12rem'
-    }
-  },
-  multilineContainer: {
-    margin: '0'
-  },
-  table: {
-    margin: theme.spacing(3)
-  },
-  addPropertyButtonContainer: {
-    margin: theme.spacing(5)
-  },
-  dataTypeDropdown: {
-    '& input[aria-hidden="true"]': {
-      visibility: 'hidden !important'
-    }
+  buttonSpaceStyle:{
+    marginRight: '0.3rem'
   }
-}));
-
-export default useStyles;
+};

@@ -1,11 +1,14 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import { useHistory } from 'react-router-dom';
 import { withStyles } from '@ellucian/react-design-system/core/styles';
 import {
   Alert,
   INLINE_VARIANT,
   Button,
+  CircularProgress,
   IconButton,
+  Illustration,
+  makeStyles,
   Pagination,
   Search,
   Table,
@@ -15,40 +18,49 @@ import {
   TableBody,
   TableFooter,
   TableSortLabel,
+  TextLink,
   Typography,
   PageHeader
 } from '@ellucian/react-design-system/core';
-import { colorCtaBlueBase } from '@ellucian/react-design-system/core/styles/tokens';
+import {
+  colorCtaBlueBase,
+  colorCtaTaupeActive
+} from '@ellucian/react-design-system/core/styles/tokens';
 import { Icon } from '@ellucian/ds-icons/lib';
 import ActionMenu from '../../components/ActionMenu';
 import Confirmation from '../../components/ConfirmationDialog';
 import { ActionMenuType, PaginationType } from './constants';
 import { getAllLMS, deleteLms } from '../../utils/HandleApi';
 import { format } from 'date-fns';
-import {
-  spacing50,
-  spacing60
-} from '@ellucian/react-design-system/core/styles/tokens';
-const styles = () => ({
-  inline: {
-    marginTop: spacing60
-  },
-  inlineAlert: {
-    marginBottom: spacing50
-  }
-});
+import { styles } from '../DisplayRecord/style';
+const useStyles = makeStyles(styles);
 
-function ManageProperties({ classes }) {
+// eslint-disable-next-line react/prop-types
+function ManageProperties( ) {
+  const classes = useStyles();
   const [lms, setLms] = useState([]);
+  const [loading, setLoading] = useState(true);
   const history = useHistory();
+  const lmsRefData = useRef([]);
+  const [IllustrationMsg, setIllustrationMsg] = useState('');
 
   useEffect(() => {
     getLMSData();
   }, []);
 
   const getLMSData = async () => {
-    const response = await getAllLMS();
-    setLms(response);
+    try{
+      const response = await getAllLMS();
+      setLoading(false);
+      setLms(response);
+      lmsRefData.current = response;
+      if(response?.length == 0){
+        setIllustrationMsg('No Book(s) to display')
+      }
+    } catch(error) {
+      setLoading(false);
+      setIllustrationMsg('Something went wrong, Contact your Administrator');
+    }
   };
 
   const [open, setOpen] = useState(false);
@@ -65,7 +77,6 @@ function ManageProperties({ classes }) {
   const customId = 'AlertTimeoutExample';
 
   const [search, setSearch] = useState('');
-  const [searchEnterPress, setSearchEnterPress] = useState('');
   const [orderBy, setOrderBy] = useState('BookTitle');
   const [order, setOrder] = useState('asc');
   const [openActionMenu, setOpenActionMenu] = useState<ActionMenuType>({
@@ -74,13 +85,15 @@ function ManageProperties({ classes }) {
   });
 
   const handleSearchInvoked = (searchValue) => {
-    searchEnterPress;
-    setSearchEnterPress(searchValue);
-    const filteredData = lms.filter((item) => {
+    // eslint-disable-next-line no-unused-expressions
+    const filteredData = lmsRefData.current.filter((item) => {
       return item?.BookTitle?.toLowerCase()?.includes(
         searchValue.toLowerCase()
       );
     });
+    if(filteredData?.length == 0){
+      setIllustrationMsg('No Book(s) to display');
+    }
     setLms(filteredData);
   };
 
@@ -93,12 +106,11 @@ function ManageProperties({ classes }) {
 
   const handleClearClick = () => {
     setSearch('');
-    setSearchEnterPress('');
     getLMSData();
   };
 
   const [paginationOption, setPaginationOptions] = useState<PaginationType>({
-    rowsPerPage: 5,
+    rowsPerPage: 2,
     page: 0
   });
 
@@ -107,23 +119,20 @@ function ManageProperties({ classes }) {
   }, [lms]);
 
   const findLastSequenceNumber = () => {
-    if (lms.length === 0) {
+    if (lms?.length === 0) {
       return 0;
     }
-    const sequenceArray = lms.map((eachBook) => {
+    const sequenceArray = lms?.map((eachBook) => {
       const num = eachBook.BookRefNumber.slice(4);
       return Number(num);
-    });
+    }) || [];
     return Math.max(...sequenceArray);
   };
 
   const generateEllString = () => {
-    let sequenceNumber = findLastSequenceNumber();
-
+    const sequenceNumber = findLastSequenceNumber();
     const incrementedNumber = sequenceNumber + 1;
-
-    let ellString;
-    ellString = `LIB-${incrementedNumber}`;
+    const ellString = `LIB-${incrementedNumber}`;
     window.sessionStorage.setItem('BookRefNumber', ellString);
   };
 
@@ -135,19 +144,14 @@ function ManageProperties({ classes }) {
       label: 'Edit Book',
       iconName: 'edit',
       onClick: (_id) => () => history.push(`edit/${_id}`)
-       
     },
     {
       id: 'delete',
       label: 'Delete Book',
       iconName: 'trash',
-      onClick: (id) => () => setDialogOpen(id),
+      onClick: (id) => () => setDialogOpen(id)
     }
   ];
-
-  // const handleDelDialog = () => {
-  //   history.push(`edit/${_id}`);
-  // }
 
   const handleSort = (colName) => {
     if (orderBy === colName) {
@@ -182,9 +186,9 @@ function ManageProperties({ classes }) {
     if (response) {
       alertText = `Record deleted successfully`;
       handleClick();
-       setTimeout(() => {
-         getLMSData();
-       }, 3000);    
+      setTimeout(() => {
+        getLMSData();
+      }, 3000);
     }
   };
 
@@ -232,7 +236,7 @@ function ManageProperties({ classes }) {
             <TableCell>Book Price</TableCell>
             <TableCell>Book Ratings</TableCell>
             <TableCell>Audiobook Available</TableCell>
-            <TableCell>Audio Book Available</TableCell>
+            <TableCell>Audio Book URL</TableCell>
             <TableCell>More Options</TableCell>
           </TableRow>
         </TableHead>
@@ -244,6 +248,7 @@ function ManageProperties({ classes }) {
                 paginationOption.rowsPerPage
             )
             .map((lms) => (
+              // eslint-disable-next-line no-underscore-dangle
               <TableRow key={lms._id}>
                 <TableCell>{lms.BookRefNumber}</TableCell>
                 <TableCell>{lms.BookTitle}</TableCell>
@@ -254,19 +259,27 @@ function ManageProperties({ classes }) {
                 </TableCell>
                 <TableCell>{lms.BookAge}</TableCell>
                 <TableCell>{lms.copiesinstock}</TableCell>
-                {/* <TableCell>{lms.Currency}</TableCell> */}
-                <TableCell>
-                  {[lms.BookPrice, lms.Currency].join(' ')}
-                  {/* {lms.BookPrice}
-                  {lms.Currency} */}
-                </TableCell>
+                <TableCell>{[lms.BookPrice, lms.Currency].join(' ')}</TableCell>
                 <TableCell>{lms.Bookratings}</TableCell>
                 <TableCell>{String(lms.Audiobookavailable)}</TableCell>
-                <TableCell>{lms.AudiobookLink}</TableCell>
+                <TableCell>
+                  <TextLink
+                    onClick={() => {
+                      window.open(
+                        `/${lms.AudiobookLink}`,
+                        '_blank',
+                        'noopener, noreferrer'
+                      );
+                    }}
+                  >
+                    {lms.AudiobookLink}
+                  </TextLink>
+                </TableCell>
                 <TableCell>
                   <IconButton
                     color='gray'
                     id={'more-option'}
+                    // eslint-disable-next-line no-underscore-dangle
                     onClick={(event) => handleMoreClick(event, lms._id)}
                   >
                     <Icon name='more-vertical' id={'actionIcon'} />
@@ -280,37 +293,56 @@ function ManageProperties({ classes }) {
   };
 
   const table = () => {
-    return (
-      <Table
-        layout={{ variant: 'card', breakpoint: 'sm' }}
-        style={{ marginLeft: '0.3rem', marginRight: '0.3rem' }}
-      >
-        <TableBody>{tableBody()}</TableBody>
-        <TableFooter>
-          <TableRow>
-            <Pagination
-              component='td'
-              count={Object.keys(lms).length}
-              rowsPerPage={paginationOption.rowsPerPage}
-              rowsPerPageOptions={[5, 10, 25, 50]}
-              page={paginationOption.page}
-              onPageChange={handleChangePage}
-              onRowsPerPageChange={handleChangeRowsPerPage}
-            />
-          </TableRow>
-        </TableFooter>
-      </Table>
-    );
+    if (lms?.length > 0) {
+      return (
+        <Table
+          layout={{ variant: 'card', breakpoint: 'sm' }}
+          className={classes.tableStyle}
+        >
+          <TableBody>{tableBody()}</TableBody>
+          <TableFooter>
+            <TableRow>
+              <Pagination
+                component='td'
+                count={Object.keys(lms).length}
+                rowsPerPage={paginationOption.rowsPerPage}
+                rowsPerPageOptions={[2, 5, 10]}
+                page={paginationOption.page}
+                onPageChange={handleChangePage}
+                onRowsPerPageChange={handleChangeRowsPerPage}
+              />
+            </TableRow>
+          </TableFooter>
+        </Table>
+      );
+    } else {
+      return (
+        <>
+          <div className={classes.illustrationStyle}>
+            <Illustration name='no-messages' />{' '}
+          </div>
+          <div
+            className = {classes.illustrationStyle}
+          >
+            <Typography variant='h2' sx={{ color: colorCtaTaupeActive }}>
+              {IllustrationMsg}
+            </Typography>
+          </div>
+        </>
+      );
+    }
   };
 
   useEffect(() => {
     const data = [...lms];
     if (order === 'asc') {
       data.sort((a, b) => {
+        // eslint-disable-next-line no-nested-ternary
         return a[orderBy] > b[orderBy] ? 1 : b[orderBy] > a[orderBy] ? -1 : 0;
       });
     } else {
       data.sort((a, b) => {
+        // eslint-disable-next-line no-nested-ternary
         return b[orderBy] > a[orderBy] ? 1 : a[orderBy] > b[orderBy] ? -1 : 0;
       });
     }
@@ -319,54 +351,57 @@ function ManageProperties({ classes }) {
 
   return (
     <>
-      {/* <Card className={classes.inline}> */}
-        <Alert
-          alertType='success'
-          // autoHideDuration={3000}
-          className={classes.inlineAlert}
-          id={`${customId}_Alert`}
-          open={open}
-          onClose={handleClose}
-          text={alertText}
-          variant={INLINE_VARIANT}
-        />
-        {/* <CardHeader id={`${customId}_CardHeader`} title='Header Content' /> */}
-      {/* </Card> */}
+      <Alert
+        alertType='success'
+        autoHideDuration={1500}
+        // eslint-disable-next-line react/prop-types
+        className={classes.inlineAlert}
+        id={`${customId}_Alert`}
+        open={open}
+        onClose={handleClose}
+        text={alertText}
+        variant={INLINE_VARIANT}
+      />
       <div>
         <div>
-          <div style={{ marginLeft: '30px' }}>
+          <div className={classes.pageTitleStyle}>
             <Typography variant='h3' sx={{ color: colorCtaBlueBase }}>
               <u>
                 <PageHeader text='Books List' />
               </u>
             </Typography>
           </div>
-          <div
-            style={{
-              display: 'flex',
-              flexDirection: 'row',
-              justifyContent: 'space-between'
-            }}
-          >
-            <div style={{ marginLeft: '25px', marginBottom: '20px' }}>
+          <div className={classes.addBookStyle}>
+            <div className={classes.searchBookStyle}>
               <Search
                 inputProps={{ 'aria-label': 'Search for an item' }}
                 id='search-example'
                 name='search'
                 onSearchInvoked={handleSearchInvoked}
-                searchEnterPress={search}
+                // searchEnterPress={search}
                 onChange={handleChange}
                 onClear={handleClearClick}
                 placeholder='Book Title'
                 value={search}
+                disabled={lms?.length == 0 && search == ''}
               />
             </div>
-            <div style={{ marginRight: '30px', marginTop: '16px' }}>
+            <div className={classes.backButtonStyle}>
               <Button onClick={handleBackClick}>Add Book</Button>
             </div>
           </div>
         </div>
-        <div>{table()}</div>
+        {/* <div>{table()}</div> */}
+        {loading ? (
+          <div
+            className={classes.loaderContainer}
+            data-testid='loaderContainer'
+          >
+            <div style = {{display:'flex', justifyContent:'center' }}><CircularProgress data-testid='circular-progress' /></div>
+          </div>
+        ) : (
+          table()
+        )}
       </div>
       <ActionMenu
         openActionMenu={openActionMenu}

@@ -11,6 +11,7 @@ const getAllLMS = () => {
     })
     .catch((err) => {
       console.log(err);
+      throw new Error('error on get all API')
     });
 };
 
@@ -24,6 +25,7 @@ const getByID = (_id) => {
     })
     .catch((err) => {
       console.log(err);
+      throw new Error('error on search API');
     });
 };
 
@@ -35,6 +37,7 @@ const addLms = (reqData) => {
     })
     .catch((err) => {
       console.log(err);
+      throw new Error('error on add API');
     });
 };
 
@@ -46,6 +49,7 @@ const updateLms = (reqData) => {
     })
     .catch((err) => {
       console.log(err);
+      throw new Error('error on upate API');
     });
 };
 
@@ -57,6 +61,7 @@ const deleteLms = (reqData) => {
     })
     .catch((err) => {
       console.log(err);
+      throw new Error('error on delete API');
     });
 };
 

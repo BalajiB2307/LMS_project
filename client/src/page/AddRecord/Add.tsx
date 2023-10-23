@@ -1,3 +1,5 @@
+/* eslint-disable radix */
+/* eslint-disable complexity */
 import React, { useState, useEffect } from 'react';
 import { withStyles } from '@ellucian/react-design-system/core/styles';
 import {
@@ -12,6 +14,7 @@ import {
   Dropdown,
   DropdownItem,
   INLINE_VARIANT,
+  makeStyles,
   TextField,
   Typography,
   PageHeader
@@ -20,20 +23,11 @@ import {
 import { addLms, getByID, updateLms } from '../../utils/HandleApi';
 import { useParams, useHistory } from 'react-router-dom';
 import { colorCtaBlueBase } from '@ellucian/react-design-system/core/styles/tokens';
-import {
-  spacing50,
-  spacing60
-} from '@ellucian/react-design-system/core/styles/tokens';
-const styles = () => ({
-    inline: {
-        marginTop: spacing60,
-    },
-    inlineAlert: {
-        marginBottom: spacing50,
-    }
-});
+import { styles } from '../AddRecord/style';
+const useStyles = makeStyles(styles);
 
-const LMSAdd = ({ classes }) => {
+const LMSAdd = ( ) => {
+  const classes = useStyles();
   const history = useHistory();
   const { _id } = useParams();
 
@@ -43,15 +37,11 @@ const LMSAdd = ({ classes }) => {
 
   const [open, setOpen] = useState(false);
 
-  const handleClick = () => {
-    setOpen(true);
-  };
-
   const handleClose = () => {
     setOpen(false);
   };
 
-  let alertText = 'Book Added/Updated successfully'
+  const [alertText, setAlertText] = useState('');
   const customId = 'AlertTimeoutExample';
 
   const initValues = {
@@ -79,7 +69,8 @@ const LMSAdd = ({ classes }) => {
     copiesinstock: '',
     Currency: '',
     BookPrice: '',
-    Bookratings: ''
+    Bookratings: '',
+    AudiobookLink: ''
   };
   const [error, setError] = useState(errorInitValues);
 
@@ -105,24 +96,35 @@ const LMSAdd = ({ classes }) => {
     const pattern = /^[a-zA-Z0-9 -]+$/;
     const patternNum = /^[0-9]+$/;
     const patternCurr = /^[-+]?\d*\.?\d+$/;
-    const patternMail = /^((http(s?)?):\/\/)?([wW]{3}\.)?[a-zA-Z0-9\-.]+\.[a-zA-Z]{2,}(\.[a-zA-Z]{2,})?$/g;
+    const patternUrl = /^((http(s?)?):\/\/)?([wW]{3}\.)[a-zA-Z0-9\-.]+\.[a-zA-Z]{2,}(\.[a-zA-Z]{2,})?$/g;
     const errMsg = 'Only alphabets, hyphen, space and numbers are allowed';
-    const arr = Object.keys(errorInitValues).map((each) => {      
+    const arr = Object.keys(errorInitValues).map((each) => {
       if (data[each] === '' || data[each] === null) {
         curObj[each] = 'This field cannot be empty';
         return false;
       }
-      if (each === 'AudiobookLink') {
-        if (!patternMail.test(data['AudiobookLink'])) {
-          curObj[each] = 'Invalid Email';
-          console.log('Invalid Email');
+      if (each == 'PublishedDate') {
+        const currentDate = new Date();
+        const actDate = new Date(data.PublishedDate);
+        actDate.setHours(0, 0, 0, 0);
+        currentDate.setHours(0, 0, 0, 0);
+        if (actDate > currentDate) {
+          curObj[each] = 'Date cannot be in future';
           return false;
+        }
+      }
+      if (each === 'AudiobookLink') {
+        if ( data.Audiobookavailable == true ){
+          if (!patternUrl.test(data.AudiobookLink)) {
+            curObj[each] = 'Invalid URL';
+            return false;
+          }
         }
       }
       if ( each === 'BookTitle' ) {
         if (
           !(
-            pattern.test(data['BookTitle'])
+            pattern.test(data.BookTitle)
           )
         ) {
           curObj[each] = errMsg;
@@ -132,7 +134,7 @@ const LMSAdd = ({ classes }) => {
       if ( each === 'AuthorName' ){
         if (
           !(
-            pattern.test(data['AuthorName'])
+            pattern.test(data.AuthorName)
           )
         ) {
           curObj[each] = errMsg;
@@ -142,8 +144,8 @@ const LMSAdd = ({ classes }) => {
       if ( each === 'PublicationName' ){
         if (
           !(
-            pattern.test(data['PublicationName'])
-          ) 
+            pattern.test(data.PublicationName)
+          )
          ) {
           curObj[each] = errMsg;
           return false;
@@ -151,48 +153,46 @@ const LMSAdd = ({ classes }) => {
       }
       if (each === 'copiesinstock') {
         if (
-          !patternNum.test(data['copiesinstock'])
+          !patternNum.test(data.copiesinstock)
         ) {
           curObj[each] = 'Only numbers are allowed';
           return false;
         }
         if (
-          parseInt(data['copiesinstock']) < 0 ||
-          parseInt(data['copiesinstock']) === 0
+          parseInt(data.copiesinstock) < 0 ||
+          parseInt(data.copiesinstock) === 0
         ) {
           curObj[each] = 'Must be greater than zero';
           return false;
-        }        
+        }
       }
       if (each === 'BookPrice') {
-        if (!patternCurr.test(data['BookPrice'])) {
+        if (!patternCurr.test(data.BookPrice)) {
           curObj[each] = 'Only numbers are allowed';
           return false;
         }
          if (
-           parseInt(data['BookPrice']) < 0 ||
-           parseInt(data['BookPrice']) === 0
+           parseInt(data.BookPrice) < 0 ||
+           parseInt(data.BookPrice) === 0
          ) {
            curObj[each] = 'Must be greater than zero';
            return false;
          }
       }
-      
+
       return true;
-    }); 
+    });
     setError(curObj);
     return arr.every((eachValue) => eachValue);
   };
 
   const handleAddLMS = async () => {
+    // eslint-disable-next-line new-cap
     const resVal = await AddCall();
     if (resVal.toUpperCase() === 'OK') {
-      alertCall();
       setTimeout(() => {
         history.push('/home');
       }, 3000);
-    } else {
-      // console.log('Add/update fail');
     }
   };
 
@@ -201,23 +201,32 @@ const LMSAdd = ({ classes }) => {
     let resVal = 'fail';
     if (isValid) {
       if (_id) {
-        alertText = `${_id} Record updated successfully`
-        const response: any = await updateLms({ ...data, _id: _id });
-        resVal = response.statusText;
+        try {
+          if (data.Audiobookavailable == false ){
+            data.AudiobookLink = '';
+          }
+            const response: any = await updateLms({ ...data, _id: _id });
+          resVal = response.statusText;
+          setAlertText(`${data.BookRefNumber} Record updated successfully`);
+        } catch (error) {
+          setAlertText('Error in update API');
+        } finally {
+          setOpen(true);
+        }
       } else {
-        alertText = `Record Added successfully`;
-        const response: any = await addLms({ ...data });
-        resVal = response.statusText;
-      }      
+        try{
+          const response: any = await addLms({ ...data });
+          resVal = response.statusText;
+          setAlertText(`${data.BookRefNumber} Record Added successfully`);
+        } catch (error){
+          setAlertText('Error in Add API');
+        } finally {
+          setOpen(true);
+        }
+      }
     }
     return resVal;
   }
-
-  const alertCall = () => {
-    handleClick();
-  }
-
-  
 
   const handleListClick = () => {
     history.push('/home');
@@ -270,41 +279,29 @@ const LMSAdd = ({ classes }) => {
   }, []);
 
   useEffect(() => {
-    if (_id) getByBookID();
+    if (_id) {getByBookID();}
   }, []);
 
   return (
-    <div
-      style={{
-        display: 'content',
-        flexDirection: 'column',
-        alignItems: ' center',
-        justifyContent: 'space-between',
-        textAlign: 'left'
-      }}
-    >
-        <Alert
-          alertType='success'
-          // autoHideDuration={3000}
-          className={classes.inlineAlert}
-          id={`${customId}_Alert`}
-          open={open}
-          onClose={handleClose}
-          text={alertText}
-          variant={INLINE_VARIANT}
-        />
+    <div className={classes.alertStyle}>
+      <Alert
+        alertType={alertText.includes('uccessfully') ? 'success' : 'error'}
+        autoHideDuration={2000}
+        className={classes.inlineAlert}
+        id={`${customId}_Alert`}
+        open={open}
+        onClose={handleClose}
+        text={alertText}
+        variant={INLINE_VARIANT}
+      />
       <Card container spacing={spacing}>
         <CardContent>
-          <form style={{ display: 'contents' }}>
+          <form>
             <div>
               <FormControl
+                className={classes.formStyle}
                 id={`${recordID}_Container`}
                 component='fieldset'
-                style={{
-                  display: 'flex',
-                  flexDirection: 'column',
-                  alignItems: 'center'
-                }}
               >
                 <Typography
                   gutterBottom
@@ -316,7 +313,7 @@ const LMSAdd = ({ classes }) => {
                     <PageHeader text='Add Book Details' />
                   </u>
                 </Typography>
-                <div style={{ marginBottom: '0.3rem', width: '350px' }}>
+                <div className={classes.textFieldStyle}>
                   <TextField
                     name='BookTitle'
                     label='Book Title'
@@ -328,7 +325,7 @@ const LMSAdd = ({ classes }) => {
                     helperText={error.BookTitle}
                   />
                 </div>
-                <div style={{ marginBottom: '0.3rem', width: '350px' }}>
+                <div className={classes.textFieldStyle}>
                   <TextField
                     name='AuthorName'
                     label='Author Name'
@@ -340,7 +337,7 @@ const LMSAdd = ({ classes }) => {
                     helperText={error.AuthorName}
                   />
                 </div>
-                <div style={{ marginBottom: '0.3rem', width: '350px' }}>
+                <div className={classes.textFieldStyle}>
                   <TextField
                     name='PublicationName'
                     label='Publication Name'
@@ -352,8 +349,9 @@ const LMSAdd = ({ classes }) => {
                     helperText={error.PublicationName}
                   />
                 </div>
-                <div style={{ marginBottom: '0.3rem', width: '350px' }}>
+                <div className={classes.textFieldStyle}>
                   <DatePicker
+                    maxDate={new Date()}
                     id='required-datepicke'
                     name='PublishedDate'
                     required={true}
@@ -367,14 +365,13 @@ const LMSAdd = ({ classes }) => {
                         PublishedDate: date
                       });
                     }}
-                    //   onBlur={(e, day) => checkForErrors(day)}
                     label='Published Date'
                     placeholder='MM/DD/YYYY'
                     error={error.PublishedDate !== ''}
                     helperText={error.PublishedDate}
                   />
                 </div>
-                <div style={{ marginBottom: '0.3rem', width: '350px' }}>
+                <div className={classes.textFieldStyle}>
                   <TextField
                     name='BookAge'
                     label='Book Age'
@@ -384,7 +381,7 @@ const LMSAdd = ({ classes }) => {
                     disabled={true}
                   />
                 </div>
-                <div style={{ marginBottom: '0.3rem', width: '350px' }}>
+                <div className={classes.textFieldStyle}>
                   <TextField
                     name='copiesinstock'
                     label='No. of copies in stock'
@@ -396,7 +393,7 @@ const LMSAdd = ({ classes }) => {
                     helperText={error.copiesinstock}
                   />
                 </div>
-                <div style={{ marginBottom: '0.3rem', width: '350px' }}>
+                <div className={classes.textFieldStyle}>
                   <Dropdown
                     name='Currency'
                     className={classes.dropdown}
@@ -417,7 +414,7 @@ const LMSAdd = ({ classes }) => {
                     ))}
                   </Dropdown>
                 </div>
-                <div style={{ marginBottom: '0.3rem', width: '350px' }}>
+                <div className={classes.textFieldStyle}>
                   <TextField
                     name='BookPrice'
                     label='Book Price'
@@ -429,7 +426,7 @@ const LMSAdd = ({ classes }) => {
                     helperText={error.BookPrice}
                   />
                 </div>
-                <div style={{ marginBottom: '0.3rem', width: '350px' }}>
+                <div className={classes.textFieldStyle}>
                   <Dropdown
                     className={classes.dropdown}
                     name='Bookratings'
@@ -450,14 +447,8 @@ const LMSAdd = ({ classes }) => {
                     ))}
                   </Dropdown>
                 </div>
-                <div style={{ marginBottom: '0.3rem', width: '350px' }}></div>
-                <div
-                  style={{
-                    display: 'flex',
-                    alignItems: 'left',
-                    justifyContent: 'left'
-                  }}
-                >
+                <div className={classes.textFieldStyle}></div>
+                <div>
                   <FormControlLabel
                     name='Audiobookavailable'
                     label='Audio Book Available'
@@ -473,31 +464,25 @@ const LMSAdd = ({ classes }) => {
                   />
                 </div>
                 {data.Audiobookavailable == true && (
-                  <div style={{ marginBottom: '0.3rem', width: '350px' }}>
+                  <div className={classes.textFieldStyle}>
                     <TextField
                       name='AudiobookLink'
                       label='Audio Link'
                       fullWidth={true}
                       value={data.AudiobookLink}
                       onChange={handleChange}
+                      error={error.AudiobookLink !== ''}
+                      helperText={error.AudiobookLink}
                     />
                   </div>
                 )}
                 <div style={{ marginBottom: '3px' }}></div>
-                <div
-                  style={{
-                    display: 'flex',
-                    flexDirection: 'row',
-                    marginRight: '0.3rem',
-                    width: '350px',
-                    justifyContent: 'center'
-                  }}
-                >
+                <div className={classes.allButtonsStyle}>
                   <Button
                     color='primary'
                     size='default'
                     variant='contained'
-                    style={{ marginRight: '0.3rem' }}
+                    className={classes.buttonSpaceStyle}
                     onClick={handleAddLMS}
                   >
                     SAVE
@@ -529,6 +514,5 @@ const LMSAdd = ({ classes }) => {
     </div>
   );
 };
-
 
 export default withStyles(styles)(LMSAdd);
